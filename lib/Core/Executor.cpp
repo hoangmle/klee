@@ -1209,13 +1209,13 @@ void Executor::printDebugInstructions(ExecutionState &state) {
 
   if (!optionIsSet(DebugPrintInstructions, STDERR_COMPACT) &&
       !optionIsSet(DebugPrintInstructions, FILE_COMPACT))
-    printFileLine(state, state.pc, *stream);
+    printFileLine(state, state.pc(), *stream);
 
-  (*stream) << state.pc->info->id;
+  (*stream) << state.pc()->info->id;
 
   if (optionIsSet(DebugPrintInstructions, STDERR_ALL) ||
       optionIsSet(DebugPrintInstructions, FILE_ALL))
-    (*stream) << ":" << *(state.pc->inst);
+    (*stream) << ":" << *(state.pc()->inst);
   (*stream) << "\n";
 
   if (optionIsSet(DebugPrintInstructions, FILE_ALL) ||
