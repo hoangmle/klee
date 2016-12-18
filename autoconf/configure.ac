@@ -825,6 +825,9 @@ else
   AC_SUBST(METASMT_ROOT,$metasmt_root)
   ENABLE_METASMT=1
   AC_MSG_NOTICE([Using MetaSMT solver backend])
+
+  METASMT_AVAILABLE_QF_ABV_SOLVERS=`grep metaSMT_AVAILABLE_QF_ABV_SOLVERS $metasmt_root/share/metaSMT/metaSMT.makefile`
+  AC_MSG_NOTICE($METASMT_AVAILABLE_QF_ABV_SOLVERS)
 fi
 
 AC_SUBST(ENABLE_METASMT)
@@ -863,6 +866,13 @@ else
     METASMT_DEFAULT_BACKEND=STP
     AC_MSG_NOTICE([No solver specified, metaSMT uses STP as default backend])
   fi  
+fi
+
+if test "X$METASMT_DEFAULT_BACKEND" != X ; then
+  METASMT_HAVE_DEFAULT_BACKEND=`echo $METASMT_AVAILABLE_QF_ABV_SOLVERS | grep $METASMT_DEFAULT_BACKEND -o`
+  if test "X$METASMT_HAVE_DEFAULT_BACKEND" = "X"; then
+    AC_MSG_ERROR([metaSMT has been built without $METASMT_DEFAULT_BACKEND])
+  fi
 fi
 
 AC_SUBST(METASMT_DEFAULT_BACKEND)

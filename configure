@@ -5538,6 +5538,10 @@ $as_echo "#define ENABLE_METASMT 1" >>confdefs.h
   ENABLE_METASMT=1
   { $as_echo "$as_me:${as_lineno-$LINENO}: Using MetaSMT solver backend" >&5
 $as_echo "$as_me: Using MetaSMT solver backend" >&6;}
+
+  METASMT_AVAILABLE_QF_ABV_SOLVERS=`grep metaSMT_AVAILABLE_QF_ABV_SOLVERS $metasmt_root/share/metaSMT/metaSMT.makefile`
+  { $as_echo "$as_me:${as_lineno-$LINENO}: $METASMT_AVAILABLE_QF_ABV_SOLVERS" >&5
+$as_echo "$as_me: $METASMT_AVAILABLE_QF_ABV_SOLVERS" >&6;}
 fi
 
 
@@ -5580,6 +5584,13 @@ else
     METASMT_DEFAULT_BACKEND=STP
     { $as_echo "$as_me:${as_lineno-$LINENO}: No solver specified, metaSMT uses STP as default backend" >&5
 $as_echo "$as_me: No solver specified, metaSMT uses STP as default backend" >&6;}
+  fi
+fi
+
+if test "X$METASMT_DEFAULT_BACKEND" != X ; then
+  METASMT_HAVE_DEFAULT_BACKEND=`echo $METASMT_AVAILABLE_QF_ABV_SOLVERS | grep $METASMT_DEFAULT_BACKEND -o`
+  if test "X$METASMT_HAVE_DEFAULT_BACKEND" = "X"; then
+    as_fn_error $? "metaSMT has been built without $METASMT_DEFAULT_BACKEND" "$LINENO" 5
   fi
 fi
 
