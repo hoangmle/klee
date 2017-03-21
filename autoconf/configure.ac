@@ -799,6 +799,15 @@ else
   if test "X$metasmt_root" = X ; then
     AC_MSG_ERROR([Cannot access path $with_metasmt passed to --with-metasmt])
   fi
+  if test ! -f $metasmt_root/share/metaSMT/metaSMT.makefile; then
+    AC_MSG_ERROR([invalid metaSMT installation directory: $metasmt_root])
+  fi
+  
+  AC_PROG_FGREP
+  AC_PROG_SED
+  solvers_def_prefix="metaSMT_AVAILABLE_QF_ABV_SOLVERS := "
+  metasmt_backends=`$FGREP "$solvers_def_prefix" $metasmt_root/share/metaSMT/metaSMT.makefile | $SED "s/$solvers_def_prefix//"`  
+  AC_MSG_NOTICE([metaSMT has the following backend(s): $metasmt_backends])
 
   dnl AC_LANG(C++)
   old_CPPFLAGS="$CPPFLAGS"
@@ -836,7 +845,7 @@ dnl **************************************************************************
 
 AC_ARG_WITH(metasmt-default-backend,
   AS_HELP_STRING([--with-metasmt-default-backend],
-    [Default backend of metaSMT (btor|stp|z3, stp if unspecified)]),,)
+    [Default backend of metaSMT (btor|cvc4|stp|yices2|z3, stp if unspecified)]),,)
 
 if test "X$with_metasmt_default_backend" != X ; then
   if test "X$ENABLE_METASMT" != X1 ; then
@@ -854,6 +863,14 @@ if test "X$with_metasmt_default_backend" != X ; then
     METASMT_DEFAULT_BACKEND=STP
     AC_MSG_NOTICE([metaSMT uses STP as default backend])
   fi
+  if test "$with_metasmt_default_backend" == "cvc4" ; then
+    METASMT_DEFAULT_BACKEND=CVC4
+    AC_MSG_NOTICE([metaSMT uses CVC4 as default backend])
+  fi
+  if test "$with_metasmt_default_backend" == "yices2" ; then
+    METASMT_DEFAULT_BACKEND=YICES2
+    AC_MSG_NOTICE([metaSMT uses YICES2 as default backend])
+  fi
   if test "X$METASMT_DEFAULT_BACKEND" == X ; then
     METASMT_DEFAULT_BACKEND=STP
     AC_MSG_NOTICE([$with_metasmt_default_backend unsupported, metaSMT uses STP as default backend])
@@ -865,8 +882,12 @@ else
   fi  
 fi
 
-AC_SUBST(METASMT_DEFAULT_BACKEND)
-
+if test "X$ENABLE_METASMT" == X1 ; then
+  if [[ "$metasmt_backends" == "${metasmt_backends/$METASMT_DEFAULT_BACKEND/}" ]]; then
+    AC_MSG_ERROR([$METASMT_DEFAULT_BACKEND is not available in the given metaSMT installation.])
+  fi
+  AC_SUBST(METASMT_DEFAULT_BACKEND)
+fi
 
 dnl **************************************************************************
 dnl Check at least one solver backend is enabled

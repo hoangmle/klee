@@ -41,7 +41,13 @@ foreach (f ${_metasmt_flags})
   klee_component_add_cxx_flag(${f} REQUIRED)
 endforeach()
 
-set(available_metasmt_backends "BTOR" "STP" "Z3")
+# Check if metaSMT provides an useable backend
+if (NOT metaSMT_AVAILABLE_QF_ABV_SOLVERS)
+  message(FATAL_ERROR "metaSMT does not provide an useable backend.")
+endif()
+
+message(STATUS "metaSMT has the following backend(s): ${metaSMT_AVAILABLE_QF_ABV_SOLVERS}.")
+set(available_metasmt_backends ${metaSMT_AVAILABLE_QF_ABV_SOLVERS})
 set(METASMT_DEFAULT_BACKEND "STP"
   CACHE
   STRING
@@ -58,6 +64,9 @@ if ("${_meta_smt_backend_index}" EQUAL "-1")
     "Valid values are ${available_metasmt_backends}")
 endif()
 
-# Set appropriate define
+# Set appropriate defines
 list(APPEND KLEE_COMPONENT_CXX_DEFINES
   -DMETASMT_DEFAULT_BACKEND_IS_${METASMT_DEFAULT_BACKEND})
+foreach(backend ${available_metasmt_backends})
+  list(APPEND KLEE_COMPONENT_CXX_DEFINES -DMETASMT_HAVE_${backend})
+endforeach()
