@@ -141,4 +141,4 @@ before_install:
     - cd ../
 script:
     # Build KLEE and run tests
-    - ${KLEE_SRC}/.travis/klee.sh
+    - travis_wait 20 ${KLEE_SRC}/.travis/klee.sh
