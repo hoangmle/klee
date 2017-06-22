@@ -503,7 +503,8 @@ public:
                                    std::vector< 
                                    std::pair<std::string,
                                    std::vector<unsigned char> > >
-                                   &res);
+                                   &res, std::vector<std::string>
+                                   globals);
 
   virtual void getCoveredLines(const ExecutionState &state,
                                std::map<const std::string*, std::set<unsigned> > &res);

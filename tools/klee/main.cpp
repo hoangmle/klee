@@ -422,8 +422,15 @@ void KleeHandler::processTestCase(const ExecutionState &state,
   }
 
   if (!NoOutput) {
+
+    std::vector<std::string> globals;
+    if (InjectBitError && errorMessage) {
+      globals.push_back("error_case");
+      globals.push_back("injected_location");
+    }
+
     std::vector< std::pair<std::string, std::vector<unsigned char> > > out;
-    bool success = m_interpreter->getSymbolicSolution(state, out);
+    bool success = m_interpreter->getSymbolicSolution(state, out, globals);
 
     if (!success)
       klee_warning("unable to get symbolic solution, losing test case");
@@ -452,6 +459,17 @@ void KleeHandler::processTestCase(const ExecutionState &state,
 
       if (!kTest_toFile(&b, getOutputFilename(getTestFilename("ktest", id)).c_str())) {
         klee_warning("unable to write output test case, losing it");
+      }
+
+      if (InjectBitError && errorMessage) {
+        for (unsigned i=0; i<b.numObjects; i++) {
+          KTestObject *o = &b.objects[i];
+          if (std::find(globals.begin(), globals.end(), o->name) != globals.end()) {
+            assert(o->numBytes == sizeof(unsigned));
+            unsigned* p = (unsigned*) o->bytes;
+            klee_message("  %s = %d", o->name, *p);
+          }
+        }
       }
 
       for (unsigned i=0; i<b.numObjects; i++)

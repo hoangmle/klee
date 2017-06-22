@@ -155,7 +155,8 @@ public:
                                    std::vector< 
                                    std::pair<std::string,
                                    std::vector<unsigned char> > >
-                                   &res) = 0;
+                                   &res, std::vector<std::string>
+                                   globals = std::vector<std::string>()) = 0;
 
   virtual void getCoveredLines(const ExecutionState &state,
                                std::map<const std::string*, std::set<unsigned> > &res) = 0;

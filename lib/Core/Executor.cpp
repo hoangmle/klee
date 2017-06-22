@@ -3686,7 +3686,7 @@ bool Executor::getSymbolicSolution(const ExecutionState &state,
                                    std::vector< 
                                    std::pair<std::string,
                                    std::vector<unsigned char> > >
-                                   &res) {
+                                   &res, std::vector<std::string> globals) {
   solver->setTimeout(coreSolverTimeout);
 
   ExecutionState tmp(state);
@@ -3731,9 +3731,34 @@ bool Executor::getSymbolicSolution(const ExecutionState &state,
                              ConstantExpr::alloc(0, Expr::Bool));
     return false;
   }
-  
+
   for (unsigned i = 0; i != state.symbolics.size(); ++i)
     res.push_back(std::make_pair(state.symbolics[i].first->name, values[i]));
+
+  // write back values of globals
+  Assignment ass(objects, values);
+  for (unsigned i = 0; i != globals.size(); ++i) {
+    const GlobalValue* v = this->kmodule->module->getNamedGlobal(globals[i]);
+    assert(v && "named global cannot be found");
+    assert(globalObjects.find(v) != globalObjects.end() && "memory object of global cannot be found");
+    MemoryObject* mo = globalObjects[v];
+    const ObjectState* os = state.addressSpace.findObject(mo);
+    assert(os && "state of global cannot be found");
+    unsigned bits = mo->size * 8;
+    ref<Expr> expr = os->read(0, bits);
+    ref<Expr> value = ass.evaluate(expr);
+    assert(isa<ConstantExpr>(value) && "state of global does not evaluate to a constant");
+    ref<ConstantExpr> c = dyn_cast<ConstantExpr>(value);
+    uint64_t u = c->getZExtValue(bits);
+    std::vector<unsigned char> vu;
+    while (u) {
+      vu.push_back(u & 0xFF);
+      u >>= 8;
+    }
+    while (vu.size() < mo->size) vu.push_back(0);
+    res.push_back(std::make_pair(globals[i], vu));
+  }
+
   return true;
 }
 
