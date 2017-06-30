@@ -84,6 +84,10 @@ namespace {
   OutputModule("output-module",
                cl::desc("Write the bitcode for the final transformed module"),
                cl::init(false));
+  cl::opt<bool>
+  LinkKleeRuntimeIntrinsic("link-klee-runtime-intrinsic",
+               cl::desc("Link the input bitcode with the KLEE-defined intrinsic"),
+               cl::init(true));
 
   cl::opt<SwitchImplType>
   SwitchType("switch-type", cl::desc("Select the implementation of switch"),
@@ -354,7 +358,8 @@ void KModule::prepare(const Interpreter::ModuleOptions &opts,
       "libkleeRuntimeIntrinsic.bca"
 #endif
     );
-  module = linkWithLibrary(module, LibPath.str());
+  if (LinkKleeRuntimeIntrinsic)
+    module = linkWithLibrary(module, LibPath.str());
 
   // Add internal functions which are not used to check if instructions
   // have been already visited
