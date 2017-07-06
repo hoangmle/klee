@@ -240,6 +240,7 @@ private:
   SmallString<128> m_outputDirectory;
 
   unsigned m_testIndex;  // number of tests written so far
+  unsigned m_testsLost;  // number of tests lost so far
   unsigned m_pathsExplored; // number of paths explored so far
 
   // used for writing .ktest files
@@ -252,6 +253,7 @@ public:
 
   llvm::raw_ostream &getInfoStream() const { return *m_infoFile; }
   unsigned getNumTestCases() { return m_testIndex; }
+  unsigned getNumTestsLost() { return m_testsLost; }
   unsigned getNumPathsExplored() { return m_pathsExplored; }
   void incPathsExplored() { m_pathsExplored++; }
 
@@ -283,6 +285,7 @@ KleeHandler::KleeHandler(int argc, char **argv)
     m_infoFile(0),
     m_outputDirectory(),
     m_testIndex(0),
+    m_testsLost(0),
     m_pathsExplored(0),
     m_argc(argc),
     m_argv(argv) {
@@ -433,8 +436,10 @@ void KleeHandler::processTestCase(const ExecutionState &state,
     std::vector< std::pair<std::string, std::vector<unsigned char> > > out;
     bool success = m_interpreter->getSymbolicSolution(state, out, globals);
 
-    if (!success)
+    if (!success) {
       klee_warning("unable to get symbolic solution, losing test case");
+      ++m_testsLost;
+    }
 
     double start_time = util::getWallTime();
 
@@ -460,6 +465,7 @@ void KleeHandler::processTestCase(const ExecutionState &state,
 
       if (!kTest_toFile(&b, getOutputFilename(getTestFilename("ktest", id)).c_str())) {
         klee_warning("unable to write output test case, losing it");
+        ++m_testsLost;
       }
 
       if (InjectBitError && errorMessage) {
@@ -1544,6 +1550,8 @@ int main(int argc, char **argv, char **envp) {
         << handler->getNumPathsExplored() << "\n";
   stats << "KLEE: done: generated tests = "
         << handler->getNumTestCases() << "\n";
+  stats << "KLEE: done: lost tests = "
+        << handler->getNumTestsLost() << "\n";
 
   bool useColors = llvm::errs().is_displayed();
   if (useColors)
