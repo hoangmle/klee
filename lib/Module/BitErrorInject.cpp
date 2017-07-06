@@ -7,6 +7,7 @@
 #include "llvm/LLVMContext.h"
 #endif
 #include "llvm/ADT/StringSet.h"
+#include "llvm/DebugInfo.h"
 
 using namespace llvm;
 
@@ -29,6 +30,16 @@ struct Util {
 
     for (unsigned i = 0; i < users.size(); ++i) {
       users[i]->setOperand(operand_numbers[i], to);
+    }
+  }
+  
+  static Constant *getLineNumber(Instruction *instr){
+    if (MDNode *N = instr->getMetadata("dbg")) {
+        DILocation Loc(N);
+        unsigned line = Loc.getLineNumber();
+        return ConstantInt::get(Type::getInt32Ty(instr->getContext()), line);
+    } else {
+      return ConstantInt::get(Type::getInt32Ty(instr->getContext()), -1);
     }
   }
 };
@@ -84,6 +95,7 @@ bool BitErrorInject::processInstruction(BasicBlock *bb, Instruction *I) {
     std::vector<Value *> args;
     args.push_back(cons);
     args.push_back(loc);
+    args.push_back(Util::getLineNumber(I));
     Instruction *call =
         CallInst::Create(MaybeBitflipFunction, ArrayRef<Value *>(args));
 

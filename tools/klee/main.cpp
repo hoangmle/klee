@@ -427,6 +427,7 @@ void KleeHandler::processTestCase(const ExecutionState &state,
     if (InjectBitError && errorMessage) {
       globals.push_back("error_case");
       globals.push_back("injected_location");
+      globals.push_back("injected_line_number");
     }
 
     std::vector< std::pair<std::string, std::vector<unsigned char> > > out;
