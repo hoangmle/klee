@@ -229,6 +229,11 @@ namespace {
                      cl::desc("Allow extra (unbound) values to become symbolic during seeding (default=false)."));
  
   cl::opt<bool>
+  AllowSeedPatching("allow-seed-patching",
+             cl::init(true),
+                     cl::desc("Allow seeds to be modified to adhere to path constraints (default=true)."));
+
+  cl::opt<bool>
   ZeroSeedExtension("zero-seed-extension",
 		    cl::init(false),
 		    cl::desc("(default=off)"));
@@ -238,10 +243,18 @@ namespace {
 		      cl::init(false),
                       cl::desc("Allow smaller buffers than in seeds (default=off)."));
  
-  cl::opt<bool>
-  NamedSeedMatching("named-seed-matching",
-		    cl::init(false),
-                    cl::desc("Use names to match symbolic objects to inputs (default=off)."));
+  cl::opt<SeedMatchingType>
+  SeedMatchingMode("named-seed-matching",
+            cl::init(BY_ORDER),
+            cl::desc("Use names to match symbolic objects to inputs (default=off)."),
+            llvm::cl::values(
+                clEnumValN(BY_ORDER,"off","Disable matching by name"),
+                clEnumValN(BY_NAME_GREEDY,"greedy","If no match, use the first untaken input"),
+                clEnumValN(BY_NAME_STRICT,"strict","If no match, error or apply extension (requires other options)"),
+                clEnumValEnd
+            ));
+
+
 
   cl::opt<double>
   MaxStaticForkPct("max-static-fork-pct", 
@@ -889,21 +902,24 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     // Is seed extension still ok here?
     for (std::vector<SeedInfo>::iterator siit = it->second.begin(), 
            siie = it->second.end(); siit != siie; ++siit) {
-      ref<ConstantExpr> res;
+      Solver::Validity res;
+
       bool success = 
-        solver->getValue(current, siit->assignment.evaluate(condition), res);
+//        solver->getValue(current, siit->assignment.evaluate(condition), res);
+        solver->evaluate(current, siit->assignment.evaluate(condition), res);
       assert(success && "FIXME: Unhandled solver failure");
       (void) success;
-      if (res->isTrue()) {
-        trueSeed = true;
-      } else {
-        falseSeed = true;
-      }
+      if (res != Solver::False) trueSeed = true;
+      if (res != Solver::True) falseSeed = true;
       if (trueSeed && falseSeed)
         break;
     }
     if (!(trueSeed && falseSeed)) {
-      assert(trueSeed || falseSeed);
+
+      if (!(trueSeed || falseSeed)) {
+        terminateStateEarly(current, "Seeding not further possible");
+        return StatePair(0, 0);
+      }
       
       res = trueSeed ? Solver::True : Solver::False;
       addConstraint(current, trueSeed ? condition : Expr::createIsZero(condition));
@@ -950,16 +966,14 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
       std::vector<SeedInfo> &falseSeeds = seedMap[falseState];
       for (std::vector<SeedInfo>::iterator siit = seeds.begin(), 
              siie = seeds.end(); siit != siie; ++siit) {
-        ref<ConstantExpr> res;
+        Solver::Validity res;
         bool success = 
-          solver->getValue(current, siit->assignment.evaluate(condition), res);
+          //solver->getValue(current, siit->assignment.evaluate(condition), res);
+          solver->evaluate(current, siit->assignment.evaluate(condition), res);
         assert(success && "FIXME: Unhandled solver failure");
         (void) success;
-        if (res->isTrue()) {
-          trueSeeds.push_back(*siit);
-        } else {
-          falseSeeds.push_back(*siit);
-        }
+        if (res != Solver::False) trueSeeds.push_back(*siit);
+        if (res != Solver::True) falseSeeds.push_back(*siit);
       }
       
       bool swapInfo = false;
@@ -1034,12 +1048,18 @@ void Executor::addConstraint(ExecutionState &state, ref<Expr> condition) {
       assert(success && "FIXME: Unhandled solver failure");
       (void) success;
       if (res) {
-        siit->patchSeed(state, condition, solver);
+        if (AllowSeedPatching)
+          siit->patchSeed(state, condition, solver);
+        else
+          siit = it->second.erase(siit);
         warn = true;
       }
     }
-    if (warn)
-      klee_warning("seeds patched for violating constraint"); 
+    if (warn) {
+      std::string msg(AllowSeedPatching ? "seeds patched" : "seeds deleted");
+      msg += " for violating constraint";
+      klee_warning(msg.c_str());
+    }
   }
 
   state.addConstraint(condition);
@@ -3474,7 +3494,7 @@ void Executor::executeMakeSymbolic(ExecutionState &state,
       for (std::vector<SeedInfo>::iterator siit = it->second.begin(), 
              siie = it->second.end(); siit != siie; ++siit) {
         SeedInfo &si = *siit;
-        KTestObject *obj = si.getNextInput(mo, NamedSeedMatching);
+        KTestObject *obj = si.getNextInput(mo, SeedMatchingMode);
 
         if (!obj) {
           if (ZeroSeedExtension) {

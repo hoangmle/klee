@@ -20,8 +20,8 @@
 using namespace klee;
 
 KTestObject *SeedInfo::getNextInput(const MemoryObject *mo,
-                                   bool byName) {
-  if (byName) {
+                                   SeedMatchingType smt) {
+  if (smt != BY_ORDER) {
     unsigned i;
     
     for (i=0; i<input->numObjects; ++i) {
@@ -31,6 +31,11 @@ KTestObject *SeedInfo::getNextInput(const MemoryObject *mo,
           return obj;
     }
     
+    if (smt == BY_NAME_STRICT) {
+      klee_warning_once(mo, "no name match for %s in strict mode", mo->name.c_str());
+      return 0;
+    }
+
     // If first unused input matches in size then accept that as
     // well.
     for (i=0; i<input->numObjects; ++i)

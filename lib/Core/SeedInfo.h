@@ -21,6 +21,12 @@ namespace klee {
   class ExecutionState;
   class TimingSolver;
 
+  enum SeedMatchingType  {
+    BY_ORDER,        ///< Do not match by name
+    BY_NAME_GREEDY,  ///< Match with the next untaken input if no exact match can be found
+    BY_NAME_STRICT   ///< Only exact match is allowed, otherwise seed extension or error
+  };
+
   class SeedInfo {
   public:
     Assignment assignment;
@@ -35,7 +41,7 @@ namespace klee {
                              inputPosition(0) {}
     
     KTestObject *getNextInput(const MemoryObject *mo,
-                             bool byName);
+                             SeedMatchingType smt);
     
     /// Patch the seed so that condition is satisfied while retaining as
     /// many of the seed values as possible.
