@@ -91,6 +91,9 @@ def main(args):
     op.add_option('','--write-ints', dest='writeInts', action='store_true',
                   default=False,
                   help='convert 4-byte sequences to integers')
+    op.add_option('','--single-line-object', dest='singleLineObject', action='store_true',
+                  default=False,
+                  help='print each object on one single line')
     
     opts,args = op.parse_args()
     if not args:
@@ -108,12 +111,16 @@ def main(args):
             else:
                 str = data
 
-            print('object %4d: name: %r' % (i, name))
-            print('object %4d: size: %r' % (i, len(data)))
-            if opts.writeInts and len(data) == 4: 
-                print('object %4d: data: %r' % (i, struct.unpack('i',str)[0]))
+            if opts.writeInts and len(data) == 4:
+                str = struct.unpack('i',str)[0]
+
+            if opts.singleLineObject:
+                print('%r = %r (%r)' % (name, str, len(data)))
             else:
+                print('object %4d: name: %r' % (i, name))
+                print('object %4d: size: %r' % (i, len(data)))
                 print('object %4d: data: %r' % (i, str))
+
         if file != args[-1]:
             print()
 
