@@ -65,6 +65,9 @@ public:
   /// should sensibly be only at creation time).
   mutable std::vector< ref<Expr> > cexPreferences;
 
+  /// A list of boolean expressions that must hold for a counterexample.
+  mutable std::vector< ref<Expr> > cexRequirements;
+
   // DO NOT IMPLEMENT
   MemoryObject(const MemoryObject &b);
   MemoryObject &operator=(const MemoryObject &b);

@@ -254,7 +254,23 @@ namespace {
                 clEnumValEnd
             ));
 
+  /// The different modes of seed forcing
+  enum SeedForcingType {
+    NO_FORCING, /// do not force seed on tests
+    ON_CEX,  /// force cex to have seed values, report lost test if not possible
+    ON_PATH  /// force seed silently via path constraints
+  };
 
+  cl::opt<SeedForcingType>
+  SeedForcingMode("seed-forcing-mode",
+            cl::init(NO_FORCING),
+            cl::desc("Force tests to match seed in seeding mode (default=off)."),
+            llvm::cl::values(
+                clEnumValN(NO_FORCING,"off","Disable seed forcing"),
+                clEnumValN(ON_CEX,"cex","Force match when generating test, report lost test if failed "),
+                clEnumValN(ON_PATH,"path","Force seed silently into path constraints"),
+                clEnumValEnd
+            ));
 
   cl::opt<double>
   MaxStaticForkPct("max-static-fork-pct", 
@@ -3526,6 +3542,19 @@ void Executor::executeMakeSymbolic(ExecutionState &state,
               for (unsigned i=obj->numBytes; i<mo->size; ++i)
                 values.push_back('\0');
             }
+
+            if (SeedForcingMode != NO_FORCING) {
+              UpdateList ul(array, 0);
+              for (unsigned i = 0; i < values.size(); i++) {
+                 ref<Expr> read = ReadExpr::create(ul, ConstantExpr::alloc(i, Expr::Int32));
+                 ref<Expr> eq = EqExpr::create(read, ConstantExpr::alloc(values[i], Expr::Int8));
+                 if (SeedForcingMode == ON_CEX)
+                   mo->cexRequirements.push_back(eq);
+                 if (SeedForcingMode == ON_PATH)
+                   state.addConstraint(eq);
+              }
+            }
+
           }
         }
       }
@@ -3710,6 +3739,30 @@ bool Executor::getSymbolicSolution(const ExecutionState &state,
   solver->setTimeout(coreSolverTimeout);
 
   ExecutionState tmp(state);
+
+  // Restrict the bytes to the constraints contained in cexRequirements.
+  ref<Expr> reqs_expr = ConstantExpr::create(1, Expr::Bool);
+  bool hasReqs = false;
+  for (unsigned i = 0; i != state.symbolics.size(); ++i) {
+    const MemoryObject *mo = state.symbolics[i].first;
+    const std::vector< ref<Expr> > & reqs = mo->cexRequirements;
+    for (unsigned j = 0; j != reqs.size(); j++) {
+      reqs_expr = AndExpr::create(reqs_expr, reqs[j]);
+      hasReqs = true;
+    }
+  }
+
+  if (hasReqs) {
+    bool mayBeTrue;
+    bool success = solver->mayBeTrue(tmp, reqs_expr, mayBeTrue);
+    if (!(success && mayBeTrue)) {
+      solver->setTimeout(0);
+      klee_warning("unable to satisfy cex requirements!");
+      return false;
+    } else {
+      tmp.addConstraint(reqs_expr);
+    }
+  }
 
   // Go through each byte in every test case and attempt to restrict
   // it to the constraints contained in cexPreferences.  (Note:
