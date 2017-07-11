@@ -352,6 +352,12 @@ namespace {
   MaxMemoryInhibit("max-memory-inhibit",
             cl::desc("Inhibit forking at memory cap (vs. random terminate) (default=on)"),
             cl::init(true));
+
+  cl::opt<bool>
+  SilentOutOfBoundPointerError("silent-out-of-bound-pointer-error",
+                   cl::init(false),
+                   cl::desc("Silently terminate paths with an out-of-bound pointer"
+                            "rather than emitting an error (default=false)"));
 }
 
 
@@ -3481,8 +3487,12 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     if (incomplete) {
       terminateStateEarly(*unbound, "Query timed out (resolve).");
     } else {
-      terminateStateOnError(*unbound, "memory error: out of bound pointer", Ptr,
-                            NULL, getAddressInfo(*unbound, address));
+      if (SilentOutOfBoundPointerError)  {
+        terminateState(*unbound);
+      } else {
+        terminateStateOnError(*unbound, "memory error: out of bound pointer", Ptr,
+                                NULL, getAddressInfo(*unbound, address));
+      }
     }
   }
 }
