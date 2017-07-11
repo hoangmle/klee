@@ -225,6 +225,11 @@ namespace {
   Watchdog("watchdog",
            cl::desc("Use a watchdog process to enforce --max-time."),
            cl::init(0));
+
+  cl::list<std::string>
+  OutputGlobalVariables("output-global-vars",
+                        cl::desc("Specify global variables to output"),
+                        cl::value_desc("global variables"));
 }
 
 extern cl::opt<double> MaxTime;
@@ -431,6 +436,11 @@ void KleeHandler::processTestCase(const ExecutionState &state,
       globals.push_back("error_case");
       globals.push_back("injected_location");
       globals.push_back("injected_line_number");
+    }
+
+    if (!OutputGlobalVariables.empty()) {
+      for (unsigned i = 0; i < OutputGlobalVariables.size(); i++)
+        globals.push_back(OutputGlobalVariables[i]);
     }
 
     std::vector< std::pair<std::string, std::vector<unsigned char> > > out;
