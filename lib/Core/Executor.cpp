@@ -358,6 +358,12 @@ namespace {
                    cl::init(false),
                    cl::desc("Silently terminate paths with an out-of-bound pointer"
                             "rather than emitting an error (default=false)"));
+
+  cl::opt<bool>
+  NoOutputOnPeacefulExit("no-output-on-peaceful-exit",
+                   cl::init(false),
+                   cl::desc("Do not output test cases for paths that peacefully terminate (default = false)"));
+
 }
 
 
@@ -2949,8 +2955,11 @@ void Executor::terminateStateEarly(ExecutionState &state,
 
 void Executor::terminateStateOnExit(ExecutionState &state) {
   if (!OnlyOutputStatesCoveringNew || state.coveredNew || 
-      (AlwaysOutputSeeds && seedMap.count(&state)))
-    interpreterHandler->processTestCase(state, 0, 0);
+      (AlwaysOutputSeeds && seedMap.count(&state))) {
+    if (!NoOutputOnPeacefulExit) {
+      interpreterHandler->processTestCase(state, 0, 0);
+    }
+  }
   terminateState(state);
 }
 
