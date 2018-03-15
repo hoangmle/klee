@@ -55,7 +55,9 @@ namespace klee {
       } else if (isa<ConstantPointerNull>(c)) {
         return Expr::createPointer(0);
       } else if (isa<UndefValue>(c) || isa<ConstantAggregateZero>(c)) {
-        return ConstantExpr::create(0, getWidthForLLVMType(c->getType()));
+        auto w = getWidthForLLVMType(c->getType());
+        if (w == 0) w = 1; // [0 x i8*]
+        return ConstantExpr::create(0, w);
       } else if (const ConstantDataSequential *cds =
                  dyn_cast<ConstantDataSequential>(c)) {
         std::vector<ref<Expr> > kids;
