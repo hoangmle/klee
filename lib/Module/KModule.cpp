@@ -374,6 +374,7 @@ void KModule::prepare(const Interpreter::ModuleOptions &opts,
   // going to be unresolved. We really need to handle the intrinsics
   // directly I think?
   LegacyLLVMPassManagerTy pm3;
+  if (opts.InjectBitError) pm3.add(new BitErrorInject());
   pm3.add(createCFGSimplificationPass());
   switch(SwitchType) {
   case eSwitchTypeInternal: break;

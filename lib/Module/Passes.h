@@ -180,6 +180,19 @@ private:
                      llvm::BasicBlock *defaultBlock);
 };
 
+struct BitErrorInject : public llvm::FunctionPass {
+  static char ID; // Pass identification, replacement for typeid
+  BitErrorInject() : FunctionPass(ID) {}
+
+  llvm::Function *MaybeBitflipFunction;
+
+  virtual bool doInitialization(llvm::Module &M);
+
+  bool processInstruction(llvm::BasicBlock *bb, llvm::Instruction *I);
+
+  virtual bool runOnFunction(llvm::Function &func);
+};
+
 }
 
 #endif
