@@ -169,6 +169,7 @@ private:
 
 public:
   Z3_context ctx;
+  std::vector<Z3ASTHandle> constant_array_assertions;
   Z3Builder(bool autoClearConstructCache, const char *z3LogInteractionFile);
   ~Z3Builder();
 

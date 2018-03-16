@@ -261,6 +261,10 @@ bool Z3SolverImpl::internalRunSolver(
   Z3ASTHandle z3QueryExpr =
       Z3ASTHandle(builder->construct(query.expr), builder->ctx);
 
+  for(auto& arrayIndexValueExpr : builder->constant_array_assertions) {
+      Z3_solver_assert(builder->ctx, theSolver, arrayIndexValueExpr);
+  }
+
   // KLEE Queries are validity queries i.e.
   // ∀ X Constraints(X) → query(X)
   // but Z3 works in terms of satisfiability so instead we ask the

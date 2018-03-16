@@ -101,6 +101,7 @@ Z3Builder::~Z3Builder() {
   // they aren associated with.
   clearConstructCache();
   _arr_hash.clear();
+  constant_array_assertions.clear();
   Z3_del_context(ctx);
   if (z3LogInteractionFile.length() > 0) {
     Z3_close_log();
@@ -404,11 +405,16 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
       // FIXME: Flush the concrete values into Z3. Ideally we would do this
       // using assertions, which might be faster, but we need to fix the caching
       // to work correctly in that case.
+      //FIXME: We are not flushing using assertion, but the above cahcing is not fixed!
       for (unsigned i = 0, e = root->size; i != e; ++i) {
-        Z3ASTHandle prev = array_expr;
-        array_expr = writeExpr(
-            prev, construct(ConstantExpr::alloc(i, root->getDomain()), 0),
-            construct(root->constantValues[i], 0));
+        //construct(= (select i root) root->value[i]) to be asserted in Z3Solver.cpp
+        constant_array_assertions.push_back(Z3ASTHandle(
+          Z3_mk_eq(ctx,
+                   Z3_mk_select(ctx, array_expr, bvConst32(root->getDomain(), i)),
+                   construct(root->constantValues[i],0)
+          ),
+          ctx
+        ));
       }
     }
 
