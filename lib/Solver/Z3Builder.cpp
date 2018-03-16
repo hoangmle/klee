@@ -401,14 +401,12 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
     array_expr = buildArray(unique_name.c_str(), root->getDomain(),
                             root->getRange());
 
-    if (root->isConstantArray()) {
-      // FIXME: Flush the concrete values into Z3. Ideally we would do this
-      // using assertions, which might be faster, but we need to fix the caching
-      // to work correctly in that case.
-      //FIXME: We are not flushing using assertion, but the above cahcing is not fixed!
-      for (unsigned i = 0, e = root->size; i != e; ++i) {
+    if (root->isConstantArray()
+        && constant_array_assertions.count(root) == 0) {
+     std::vector<Z3ASTHandle> array_assertions;
+     for (unsigned i = 0, e = root->size; i != e; ++i) {
         //construct(= (select i root) root->value[i]) to be asserted in Z3Solver.cpp
-        constant_array_assertions.push_back(Z3ASTHandle(
+        array_assertions.push_back(Z3ASTHandle(
           Z3_mk_eq(ctx,
                    Z3_mk_select(ctx, array_expr, bvConst32(root->getDomain(), i)),
                    construct(root->constantValues[i],0)
@@ -416,6 +414,7 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
           ctx
         ));
       }
+      constant_array_assertions[root] = array_assertions;
     }
 
     _arr_hash.hashArrayExpr(root, array_expr);

@@ -249,10 +249,12 @@ bool Z3SolverImpl::internalRunSolver(
 
   runStatusCode = SOLVER_RUN_STATUS_FAILURE;
 
+  ConstantArrayFinder constant_arrays_in_query;
   for (ConstraintManager::const_iterator it = query.constraints.begin(),
                                          ie = query.constraints.end();
        it != ie; ++it) {
     Z3_solver_assert(builder->ctx, theSolver, builder->construct(*it));
+    constant_arrays_in_query.visit(*it);
   }
   ++stats::queries;
   if (objects)
@@ -260,9 +262,12 @@ bool Z3SolverImpl::internalRunSolver(
 
   Z3ASTHandle z3QueryExpr =
       Z3ASTHandle(builder->construct(query.expr), builder->ctx);
+  constant_arrays_in_query.visit(query.expr);
 
-  for(auto& arrayIndexValueExpr : builder->constant_array_assertions) {
-      Z3_solver_assert(builder->ctx, theSolver, arrayIndexValueExpr);
+  for(auto& constant_array : constant_arrays_in_query.results) {
+      for(auto& arrayIndexValueExpr : builder->constant_array_assertions[constant_array]) {
+          Z3_solver_assert(builder->ctx, theSolver, arrayIndexValueExpr);
+      }
   }
 
   // KLEE Queries are validity queries i.e.
