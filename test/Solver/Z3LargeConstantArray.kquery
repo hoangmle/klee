@@ -8,6 +8,4 @@ array stdin[121] : w32 -> w8 = symbolic
 (Eq (Add w8 192 0) (Read w8 (ZExt w32 (Read w8 0 stdin)) const_arr10))
 []
 [stdin])
-#   OK -- Elapsed: 1.056730e+01
-#   Solvable: false
 
