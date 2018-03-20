@@ -73,7 +73,7 @@ public:
   // To be specialised
   void dump();
 
-  operator T() { return node; }
+  operator T() const { return node; }
 };
 
 // Specialise for Z3_sort

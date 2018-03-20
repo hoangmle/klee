@@ -406,13 +406,11 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
      std::vector<Z3ASTHandle> array_assertions;
      for (unsigned i = 0, e = root->size; i != e; ++i) {
         //construct(= (select i root) root->value[i]) to be asserted in Z3Solver.cpp
-        array_assertions.push_back(Z3ASTHandle(
+        array_assertions.emplace_back(
           Z3_mk_eq(ctx,
                    Z3_mk_select(ctx, array_expr, bvConst32(root->getDomain(), i)),
                    construct(root->constantValues[i],0)
-          ),
-          ctx
-        ));
+          ), ctx);
       }
       constant_array_assertions[root] = array_assertions;
     }

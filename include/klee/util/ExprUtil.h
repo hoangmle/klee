@@ -44,7 +44,6 @@ namespace klee {
     ExprVisitor::Action visitRead(const ReadExpr &re);
   public:
     std::set<const Array*> results;
-    ConstantArrayFinder() {}
   };
 }
 
