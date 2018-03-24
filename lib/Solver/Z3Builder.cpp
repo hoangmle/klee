@@ -407,13 +407,12 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
      for (unsigned i = 0, e = root->size; i != e; ++i) {
         //construct(= (select i root) root->value[i]) to be asserted in Z3Solver.cpp
         int width_out;
-        Z3ASTHandle arrayValue = construct(root->constantValues[i],&width_out);
+        Z3ASTHandle array_value = construct(root->constantValues[i],&width_out);
         assert(width_out == root->getRange() && "Value doesn't match root range");
-        array_assertions.emplace_back(
-          Z3_mk_eq(ctx,
-                   Z3_mk_select(ctx, array_expr, bvConst32(root->getDomain(), i)),
-                   arrayValue
-          ), ctx);
+        array_assertions.push_back(eqExpr(
+                                       readExpr(array_expr, bvConst32(root->getDomain(), i)),
+                                       array_value
+                                   ));
       }
       constant_array_assertions[root] = std::move(array_assertions);
     }
