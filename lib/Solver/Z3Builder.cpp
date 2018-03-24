@@ -406,13 +406,16 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
      std::vector<Z3ASTHandle> array_assertions;
      for (unsigned i = 0, e = root->size; i != e; ++i) {
         //construct(= (select i root) root->value[i]) to be asserted in Z3Solver.cpp
+        int width_out;
+        Z3ASTHandle arrayValue = construct(root->constantValues[i],&width_out);
+        assert(width_out == root->getRange() && "Value doesn't match root range");
         array_assertions.emplace_back(
           Z3_mk_eq(ctx,
                    Z3_mk_select(ctx, array_expr, bvConst32(root->getDomain(), i)),
-                   construct(root->constantValues[i],0)
+                   arrayValue
           ), ctx);
       }
-      constant_array_assertions[root] = array_assertions;
+      constant_array_assertions[root] = std::move(array_assertions);
     }
 
     _arr_hash.hashArrayExpr(root, array_expr);

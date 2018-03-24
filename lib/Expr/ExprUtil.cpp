@@ -108,7 +108,7 @@ public:
 ExprVisitor::Action ConstantArrayFinder::visitRead(const ReadExpr &re) {
   const UpdateList &ul = re.updates;
 
-  // XXX should we memo better than what ExprVisitor is doing for us?
+  // FIXME should we memo better than what ExprVisitor is doing for us?
   for (const UpdateNode *un=ul.head; un; un=un->next) {
     visit(un->index);
     visit(un->value);
