@@ -236,7 +236,6 @@ typename SolverContext::result_type
 MetaSMTBuilder<SolverContext>::getInitialRead(const Array *root,
                                               unsigned index) {
   assert(root);
-  assert(false);
   typename SolverContext::result_type array_exp = getInitialArray(root);
   typename SolverContext::result_type res =
       evaluate(_solver, metaSMT::logic::Array::select(

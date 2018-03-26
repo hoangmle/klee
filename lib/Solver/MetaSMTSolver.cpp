@@ -241,21 +241,16 @@ SolverImpl::SolverRunStatus MetaSMTSolverImpl<SolverContext>::runAndGetCex(
 
       const Array *array = *it;
       assert(array);
-      typename SolverContext::result_type array_exp =
-          _builder->getInitialArray(array);
 
       std::vector<unsigned char> data;
       data.reserve(array->size);
 
       for (unsigned offset = 0; offset < array->size; offset++) {
-        typename SolverContext::result_type elem_exp = evaluate(
-            _meta_solver, metaSMT::logic::Array::select(
-                              array_exp, bvuint(offset, array->getDomain())));
-        unsigned char elem_value = metaSMT::read_value(_meta_solver, elem_exp);
-        data.push_back(elem_value);
+        unsigned char elem_value = metaSMT::read_value(_meta_solver, _builder->getInitialRead(array, offset));
+        data.emplace_back(elem_value);
       }
 
-      values.push_back(data);
+      values.emplace_back(data);
     }
   }
 
@@ -321,16 +316,11 @@ MetaSMTSolverImpl<SolverContext>::runAndGetCexForked(
 
         const Array *array = *it;
         assert(array);
-        typename SolverContext::result_type array_exp =
-            _builder->getInitialArray(array);
 
         for (unsigned offset = 0; offset < array->size; offset++) {
 
-          typename SolverContext::result_type elem_exp = evaluate(
-              _meta_solver, metaSMT::logic::Array::select(
-                                array_exp, bvuint(offset, array->getDomain())));
           unsigned char elem_value =
-              metaSMT::read_value(_meta_solver, elem_exp);
+              metaSMT::read_value(_meta_solver, _builder->getInitialRead(array, offset));
           *pos++ = elem_value;
         }
       }
