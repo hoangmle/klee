@@ -10,8 +10,8 @@
 #ifndef KLEE_EXPRUTIL_H
 #define KLEE_EXPRUTIL_H
 
-#include <vector>
 #include "klee/util/ExprVisitor.h"
+#include <vector>
 
 namespace klee {
   class Array;
@@ -42,8 +42,9 @@ namespace klee {
   class ConstantArrayFinder : public ExprVisitor {
   protected:
     ExprVisitor::Action visitRead(const ReadExpr &re);
+
   public:
-    std::set<const Array*> results;
+    std::set<const Array *> results;
   };
 }
 

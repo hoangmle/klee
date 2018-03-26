@@ -10,11 +10,11 @@
 #ifndef __UTIL_Z3BUILDER_H__
 #define __UTIL_Z3BUILDER_H__
 
-#include "klee/util/ExprHashMap.h"
-#include "klee/util/ArrayExprHash.h"
 #include "klee/Config/config.h"
-#include <z3.h>
+#include "klee/util/ArrayExprHash.h"
+#include "klee/util/ExprHashMap.h"
 #include <unordered_map>
+#include <z3.h>
 
 namespace klee {
 
@@ -170,7 +170,8 @@ private:
 
 public:
   Z3_context ctx;
-  std::unordered_map<const Array*, std::vector<Z3ASTHandle>> constant_array_assertions;
+  std::unordered_map<const Array *, std::vector<Z3ASTHandle> >
+      constant_array_assertions;
   Z3Builder(bool autoClearConstructCache, const char *z3LogInteractionFile);
   ~Z3Builder();
 

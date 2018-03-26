@@ -401,18 +401,19 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
     array_expr = buildArray(unique_name.c_str(), root->getDomain(),
                             root->getRange());
 
-    if (root->isConstantArray()
-        && constant_array_assertions.count(root) == 0) {
-     std::vector<Z3ASTHandle> array_assertions;
-     for (unsigned i = 0, e = root->size; i != e; ++i) {
-        //construct(= (select i root) root->value[i]) to be asserted in Z3Solver.cpp
+    if (root->isConstantArray() && constant_array_assertions.count(root) == 0) {
+      std::vector<Z3ASTHandle> array_assertions;
+      for (unsigned i = 0, e = root->size; i != e; ++i) {
+        // construct(= (select i root) root->value[i]) to be asserted in
+        // Z3Solver.cpp
         int width_out;
-        Z3ASTHandle array_value = construct(root->constantValues[i],&width_out);
-        assert(width_out == root->getRange() && "Value doesn't match root range");
-        array_assertions.push_back(eqExpr(
-                                       readExpr(array_expr, bvConst32(root->getDomain(), i)),
-                                       array_value
-                                   ));
+        Z3ASTHandle array_value =
+            construct(root->constantValues[i], &width_out);
+        assert(width_out == root->getRange() &&
+               "Value doesn't match root range");
+        array_assertions.push_back(
+            eqExpr(readExpr(array_expr, bvConst32(root->getDomain(), i)),
+                   array_value));
       }
       constant_array_assertions[root] = std::move(array_assertions);
     }
