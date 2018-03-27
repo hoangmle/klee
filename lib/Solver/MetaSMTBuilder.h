@@ -75,6 +75,8 @@ public:
 
   typename SolverContext::result_type getInitialRead(const Array *root,
                                                      unsigned index);
+  typename SolverContext::result_type getConstArrayElementConstraint(const Array *root,
+                                                     unsigned index);
 
   typename SolverContext::result_type getTrue() {
     return (evaluate(_solver, metaSMT::logic::True));
@@ -207,18 +209,6 @@ MetaSMTBuilder<SolverContext>::getInitialArray(const Array *root) {
 
     array_expr =
         evaluate(_solver, buildArray(root->getRange(), root->getDomain()));
-
-    if (root->isConstantArray()) {
-      for (unsigned i = 0, e = root->size; i != e; ++i) {
-        typename SolverContext::result_type tmp = evaluate(
-            _solver,
-            metaSMT::logic::Array::store(
-                array_expr,
-                construct(ConstantExpr::alloc(i, root->getDomain()), 0),
-                construct(root->constantValues[i], 0)));
-        array_expr = tmp;
-      }
-    }
     _arr_hash.hashArrayExpr(root, array_expr);
   }
 
@@ -241,6 +231,14 @@ MetaSMTBuilder<SolverContext>::getInitialRead(const Array *root,
       evaluate(_solver, metaSMT::logic::Array::select(
                             array_exp, bvuint(index, root->getDomain())));
   return (res);
+}
+
+template <typename SolverContext>
+typename SolverContext::result_type
+MetaSMTBuilder<SolverContext>::getConstArrayElementConstraint(const Array *root,
+                                              unsigned index) {
+  assert(root && root->isConstantArray() && index < root->size);
+  return eqExpr(getInitialRead(root, index), construct(root->constantValues[index], 0));
 }
 
 template <typename SolverContext>

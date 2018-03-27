@@ -227,11 +227,23 @@ bool MetaSMTSolverImpl<SolverContext>::computeInitialValues(
 
 template <typename SolverContext>
 void MetaSMTSolverImpl<SolverContext>::constructQuery(const Query &query, SolverContextCommand cmd) {
+  ConstantArrayFinder constant_arrays_in_query;
+
   for (auto const& c : query.constraints) {
     cmd(_builder->construct(c));
+    constant_arrays_in_query.visit(c);
   }
 
   cmd(_builder->construct(Expr::createIsZero(query.expr)));
+  constant_arrays_in_query.visit(query.expr);
+
+  if (constant_arrays_in_query.results.size() > 0) {
+    for (auto& constArray : constant_arrays_in_query.results) {
+      for (unsigned offset = 0; offset < constArray->size; offset++) {
+        cmd(_builder->getConstArrayElementConstraint(constArray, offset));
+      }
+    }
+  }
 }
 
 template <typename SolverContext>
