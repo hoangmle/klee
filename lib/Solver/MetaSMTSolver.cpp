@@ -57,6 +57,8 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
+#include <functional>
+
 static unsigned char *shared_memory_ptr;
 static int shared_memory_id = 0;
 // Darwin by default has a very small limit on the maximum amount of shared
@@ -111,6 +113,11 @@ public:
   SolverRunStatus getOperationStatusCode();
 
   SolverContext &get_meta_solver() { return (_meta_solver); };
+
+private:
+  using SolverContextCommand = std::function<void(const typename SolverContext::result_type &)>;
+  void constructQuery(const Query &query, SolverContextCommand cmd);
+  void writeArrayCex(const Array *arr, unsigned char *ptr);
 };
 
 template <typename SolverContext>
@@ -219,38 +226,39 @@ bool MetaSMTSolverImpl<SolverContext>::computeInitialValues(
 }
 
 template <typename SolverContext>
+void MetaSMTSolverImpl<SolverContext>::constructQuery(const Query &query, SolverContextCommand cmd) {
+  for (auto const& c : query.constraints) {
+    cmd(_builder->construct(c));
+  }
+
+  cmd(_builder->construct(Expr::createIsZero(query.expr)));
+}
+
+template <typename SolverContext>
+void MetaSMTSolverImpl<SolverContext>::writeArrayCex(const Array *arr, unsigned char *ptr) {
+  for (unsigned offset = 0; offset < arr->size; offset++) {
+    unsigned char elem_value = metaSMT::read_value(_meta_solver, _builder->getInitialRead(arr, offset));
+    *ptr++ = elem_value;
+  }
+}
+
+template <typename SolverContext>
 SolverImpl::SolverRunStatus MetaSMTSolverImpl<SolverContext>::runAndGetCex(
     const Query &query, const std::vector<const Array *> &objects,
     std::vector<std::vector<unsigned char> > &values, bool &hasSolution) {
 
-  // assume the constraints of the query
-  for (ConstraintManager::const_iterator it = query.constraints.begin(),
-                                         ie = query.constraints.end();
-       it != ie; ++it) {
-    assumption(_meta_solver, _builder->construct(*it));
-  }
-  // assume the negation of the query
-  assumption(_meta_solver, _builder->construct(Expr::createIsZero(query.expr)));
+  // assume the constraints
+  SolverContextCommand cmd = [this](const typename SolverContext::result_type &r) { assumption(_meta_solver, r); };
+  constructQuery(query, cmd);
   hasSolution = solve(_meta_solver);
 
   if (hasSolution) {
     values.reserve(objects.size());
-    for (std::vector<const Array *>::const_iterator it = objects.begin(),
-                                                    ie = objects.end();
-         it != ie; ++it) {
-
-      const Array *array = *it;
+    for (const Array * array : objects) {
       assert(array);
-
-      std::vector<unsigned char> data;
-      data.reserve(array->size);
-
-      for (unsigned offset = 0; offset < array->size; offset++) {
-        unsigned char elem_value = metaSMT::read_value(_meta_solver, _builder->getInitialRead(array, offset));
-        data.emplace_back(elem_value);
-      }
-
-      values.emplace_back(data);
+      std::vector<unsigned char> vec(array->size);
+      writeArrayCex(array, vec.data());
+      values.emplace_back(vec);
     }
   }
 
@@ -271,12 +279,9 @@ MetaSMTSolverImpl<SolverContext>::runAndGetCexForked(
     double timeout) {
   unsigned char *pos = shared_memory_ptr;
   unsigned sum = 0;
-  for (std::vector<const Array *>::const_iterator it = objects.begin(),
-                                                  ie = objects.end();
-       it != ie; ++it) {
-    sum += (*it)->size;
+  for (const Array *array : objects) {
+    sum += array->size;
   }
-  // sum += sizeof(uint64_t);
   sum += sizeof(stats::queryConstructs);
   assert(sum < shared_memory_size &&
          "not enough shared memory for counterexample");
@@ -297,32 +302,15 @@ MetaSMTSolverImpl<SolverContext>::runAndGetCexForked(
     }
 
     // assert constraints as we are in a child process
-    for (ConstraintManager::const_iterator it = query.constraints.begin(),
-                                           ie = query.constraints.end();
-         it != ie; ++it) {
-      assertion(_meta_solver, _builder->construct(*it));
-      // assumption(_meta_solver, _builder->construct(*it));
-    }
-
-    // asssert the negation of the query as we are in a child process
-    assertion(_meta_solver,
-              _builder->construct(Expr::createIsZero(query.expr)));
+    SolverContextCommand cmd = [this](const typename SolverContext::result_type &r) { assertion(_meta_solver, r); };
+    constructQuery(query, cmd);
     unsigned res = solve(_meta_solver);
 
     if (res) {
-      for (std::vector<const Array *>::const_iterator it = objects.begin(),
-                                                      ie = objects.end();
-           it != ie; ++it) {
-
-        const Array *array = *it;
+      for (const Array *array : objects) {
         assert(array);
-
-        for (unsigned offset = 0; offset < array->size; offset++) {
-
-          unsigned char elem_value =
-              metaSMT::read_value(_meta_solver, _builder->getInitialRead(array, offset));
-          *pos++ = elem_value;
-        }
+        writeArrayCex(array, pos);
+        pos += array->size;
       }
     }
     assert((uint64_t *)pos);
@@ -368,10 +356,7 @@ MetaSMTSolverImpl<SolverContext>::runAndGetCexForked(
     if (hasSolution) {
       values = std::vector<std::vector<unsigned char> >(objects.size());
       unsigned i = 0;
-      for (std::vector<const Array *>::const_iterator it = objects.begin(),
-                                                      ie = objects.end();
-           it != ie; ++it) {
-        const Array *array = *it;
+      for (const Array *array : objects) {
         assert(array);
         std::vector<unsigned char> &data = values[i++];
         data.insert(data.begin(), pos, pos + array->size);
