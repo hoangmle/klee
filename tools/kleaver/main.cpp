@@ -28,6 +28,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <sys/stat.h>
@@ -40,6 +41,8 @@
 #include "llvm/ADT/OwningPtr.h"
 #include "llvm/Support/system_error.h"
 #endif
+
+#include <chrono>
 
 using namespace llvm;
 using namespace klee;
@@ -197,6 +200,8 @@ static bool PrintInputAST(const char *Filename,
 static bool EvaluateInputAST(const char *Filename,
                              const MemoryBuffer *MB,
                              ExprBuilder *Builder) {
+  auto start = std::chrono::steady_clock::now();
+
   std::vector<Decl*> Decls;
   Parser *P = Parser::Create(Filename, MB, Builder, ClearArrayAfterQuery);
   P->SetMaxErrors(20);
@@ -322,6 +327,9 @@ static bool EvaluateInputAST(const char *Filename,
       << "query cex = " 
       << *theStatisticManager->getStatisticByName("QueriesCEX") << "\n";
   }
+
+  std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+  llvm::outs() << "Elapsed: " << format("%.2f", elapsed.count()) << "s\n";
 
   return success;
 }
