@@ -24,6 +24,12 @@ Statistic stats::queryConstructs("QueriesConstructs", "QB");
 Statistic stats::queryCounterexamples("QueriesCEX", "Qcex");
 Statistic stats::queryTime("QueryTime", "Qtime");
 
+Statistic stats::subsetCacheTime("SubsetCacheTime", "SubCtime");
+Statistic stats::supersetCacheTime("SupersetCacheTime", "SupCtime");
+Statistic stats::subsetCacheUnsatHits("SubsetCacheUnsatHits", "SubCUhits");
+Statistic stats::subsetCacheSatHits("SubsetCacheSatHits", "SubCShits");
+Statistic stats::supersetCacheHits("SupersetCacheHits", "SupChits");
+
 #ifdef DEBUG
 Statistic stats::arrayHashTime("ArrayHashTime", "AHtime");
 #endif

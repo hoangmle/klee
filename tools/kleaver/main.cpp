@@ -326,10 +326,35 @@ static bool EvaluateInputAST(const char *Filename,
       << *theStatisticManager->getStatisticByName("QueriesInvalid") << "\n"
       << "query cex = " 
       << *theStatisticManager->getStatisticByName("QueriesCEX") << "\n";
+
+    llvm::outs()
+      << "--\n"
+      << "total core solver time = "
+      << format("%.2f s", *theStatisticManager->getStatisticByName("QueryTime") / 1000000.) << "\n"
+      << "total cache time = "
+      << format("%.2f s", (*theStatisticManager->getStatisticByName("CexCacheTime") - *theStatisticManager->getStatisticByName("QueryTime")) / 1000000.) << "\n"
+      << "query cache hits = "
+      << *theStatisticManager->getStatisticByName("QueryCacheHits") << "\n"
+      << "query cache misses = "
+      << *theStatisticManager->getStatisticByName("QueryCacheMisses") << "\n"
+      << "query cex cache hits = "
+      << *theStatisticManager->getStatisticByName("QueryCexCacheHits") << "\n"
+      << "query cex cache misses = "
+      << *theStatisticManager->getStatisticByName("QueryCexCacheMisses") << "\n"
+      << "total superset cache time = "
+      << format("%.2f s", *theStatisticManager->getStatisticByName("SupersetCacheTime") / 1000000.) << "\n"
+      << "total subset cache time = "
+      << format("%.2f s", *theStatisticManager->getStatisticByName("SubsetCacheTime") / 1000000.) << "\n"
+      << "superset cache hits = "
+      << *theStatisticManager->getStatisticByName("SupersetCacheHits") << "\n"
+      << "subset cache sat hits = "
+      << *theStatisticManager->getStatisticByName("SubsetCacheSatHits") << "\n"
+      << "subset cache unsat hits = "
+      << *theStatisticManager->getStatisticByName("SubsetCacheUnsatHits") << "\n";
   }
 
   std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
-  llvm::outs() << "Elapsed: " << format("%.2f", elapsed.count()) << "s\n";
+  llvm::outs() << "Elapsed: " << format("%.2f s", elapsed.count()) << "\n";
 
   return success;
 }
