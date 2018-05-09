@@ -128,6 +128,8 @@ static SpecialFunctionHandler::HandlerInfo handlerInfo[] = {
   add("__ubsan_handle_mul_overflow", handleMulOverflow, false),
   add("__ubsan_handle_divrem_overflow", handleDivRemOverflow, false),
 
+  addDNR("__cxa_throw", handleCxaThrow),
+
 #undef addDNR
 #undef add
 };
@@ -757,3 +759,14 @@ void SpecialFunctionHandler::handleDivRemOverflow(ExecutionState &state,
   executor.terminateStateOnError(state, "overflow on division or remainder",
                                  Executor::Overflow);
 }
+
+void SpecialFunctionHandler::handleCxaThrow(ExecutionState &state,
+                                              KInstruction *target,
+                                              std::vector<ref<Expr> > &arguments) {
+  assert(arguments.size()==3 &&
+         "invalid number of arguments to __cxa_throw");
+  executor.terminateStateOnError(state,
+				 "exception thrown but exception handling is not supported",
+				 Executor::Unhandled);
+}
+
